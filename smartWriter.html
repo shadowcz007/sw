@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+  <meta charset="UTF-8">
+
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+  <meta name="viewport" content="user-scalable=1.0,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0">
+
+  <title>ai.writer</title>
+
+  <link rel="stylesheet" type="text/css" href="lib/pell.min.css">
+  <link rel="stylesheet" href="css/main.css">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
+
+    .content {
+      box-sizing: border-box;
+      margin: 0 auto;
+      max-width: 720px;
+      padding: 20px;
+    }
+  </style>
+
+  <link rel="stylesheet" href="css/loading.css">
+  <link rel="stylesheet" href="lib/formbase.min.css">
+</head>
+
+<body>
+  <div id="main">
+
+    <div id="left_pannel">
+      <div id="hot_list" class="sw_hot_list">
+        <h4 class="sw_title">热点</h4>
+        <span class="loading bullet" id="hot_list_loading"></span>
+      </div>
+
+      <!-- <div class="flex_row">
+        <div contenteditable="true" class="sw_input" id="search_input">春运</div>
+      </div>
+    -->
+
+      <!-- <div class="control sw_control">
+        <input class="control__input" id="timeline_checkbox" type="checkbox">
+        <label class="control__label sw_checkbox" for="timeline_checkbox">时间线</label>
+      </div>-->
+
+
+
+    </div>
+
+
+
+    <div id="center_pannel" class="content">
+      <h2 contenteditable="true" class="sw_input" id="search_input">标题</h2>
+      <div class="btn" id="search_btn">
+        <span>RUN</span>
+        <span class="loading bullet" id="search_btn_loading"></span>
+      </div>
+      <!--<h1 id="editor_title" ></h1>-->
+      <!--<div class="btn small_btn" id="auto_title_btn">自动取标题</div>-->
+      <div id="editor" class="pell"></div>
+
+
+    </div>
+
+    <div id="right_pannel" class="pannel" style="display:none">
+
+      <!--<div class="btn" id="timeline_btn"><span>时间线</span><span class="loading bullet" id="timeline_btn_loading"></span></div>-->
+      <div class="pannel_child">
+        <div id="search_result_count_info">素材数量：</div>
+        <div id="search_result_count"></div>
+        <div id="search_result">
+
+        </div>
+      </div>
+
+      <div id="time_line_pannel" class="pannel_child">
+
+      </div>
+
+    </div>
+
+
+  </div>
+
+
+  <script src="lib/pell.min.js"></script>
+
+
+  <script src="js/search.js"></script>
+
+  <script>
+    var search_btn = document.getElementById('search_btn');
+    var search_input = document.getElementById('search_input');
+    var search_btn_loading = document.getElementById('search_btn_loading');
+    var search_result = document.getElementById('search_result');
+    var search_result_count = document.getElementById('search_result_count');
+
+    var isSearch = false;
+
+
+    var editor_title = document.getElementById('editor_title');
+    var auto_title_btn = document.getElementById('auto_title_btn');
+    //var auto_hot_btn = document.getElementById('auto_hot_btn');
+
+    var hot_list = document.getElementById('hot_list');
+    var hot_list_loading = document.getElementById('hot_list_loading');
+
+    var time_line_pannel = document.getElementById('time_line_pannel');
+
+    createHotList();
+    //纪念日
+    /* async function createHotList(){
+      var hot_list_data=await getHot();
+      
+      var today=new Date();
+      var todayTime=today.getTime();
+  
+      for (let index in hot_list_data) {
+        let nd=new Date(today.getFullYear()+','+index);
+        let last=nd.getTime()-todayTime;
+        //console.log(last)
+        if (last>0 && last<=1000*60*60*24*13) {
+          console.log(JSON.stringify([index]))
+          createHotElement(hot_list_data[index],index);
+        }
+      }
+      
+     }
+     */
+
+    //全网热搜榜
+    async function createHotList() {
+      var hot_list_data = await getHot();
+
+      createHotElement(hot_list_data);
+      hot_list_loading.style.display = "none";
+    };
+
+    function createHotElement(_hs) {
+
+      let div = document.createDocumentFragment();
+      div.className = "sw_hot_list_child";
+
+      for (let index = 0; index < _hs.length; index++) {
+        const h = _hs[index];
+        var d = document.createElement('div');
+        d.className = "sw_hot_list_div";
+        d.setAttribute('keyword', h.title);
+        //d.setAttribute('keyword', h.keyword.toString());
+        d.innerHTML = `<h5>${h.title}  <span>  ${h.score}</span></h5><!--<p>${h.content}</p>-->`;
+        d.addEventListener('click', add2Search);
+        div.appendChild(d);
+      };
+
+
+      hot_list.appendChild(div);
+
+    }
+
+    /*
+    function createHotElement(_hs,_date){
+      
+      let div=document.createElement('div');
+      div.className="sw_hot_list_child";
+       let html='';
+       for (let index = 0; index < _hs.length; index++) {
+         const h = _hs[index];
+         html=html+`<h5>${h.title}  <span>  ${_date.replace(',','月')+'日'}</span></h5><!--<p>${h.content}</p>-->`;
+       };
+       div.innerHTML=html;
+       for (let index = 0; index < div.children.length; index++) {
+         const d = div.children[index];
+         hot_list.appendChild(d);
+       };
+    }
+ */
+
+    var search;
+
+    search_input.addEventListener('focus', function (e) {
+      console.log(e)
+      document.querySelector('#left_pannel').style.display = "flex";
+    });
+
+    search_btn.addEventListener('click', async function (e) {
+      e.preventDefault();
+      if (isSearch == false) {
+        search_result.innerHTML = '';
+        time_line_pannel.innerHTML = '';
+        search_result_count.innerText = '';
+        editor.content.innerText = '';
+
+        isSearch = true;
+        search_btn_loading.style.opacity = 1;
+
+        var text = search_input.innerText.replace(/\s{2}/ig, '');
+
+        /*
+        if (editor_title.innerText == '' && text.length > 0) {
+          editor_title.innerText = text;
+        }
+        */
+
+        search = new Search(text);
+        search.todo = createSearchResult;
+        await moreQuestionFetch(text);
+
+      };
+
+    });
+
+
+
+    function generateArticle() {
+      console.log('generateArticle')
+    }
+
+
+    /*
+       auto_title_btn.addEventListener('click', function (e) {
+         e.preventDefault();
+         console.log(e.target.innerText);
+         alert('auto title')
+       });
+   
+       auto_hot_btn.addEventListener('click', function (e) {
+          e.preventDefault();
+          alert('auto hot')
+        });
+    */
+    async function moreQuestionFetch(_keyword) {
+      let ks = moreQuestion(_keyword);
+      let i = 0;
+      await getOneQuestion(ks, i);
+    };
+
+    async function getOneQuestion(_ks, _i) {
+      let res = await fetchJson(_ks[_i]);
+      console.log(res)
+
+      if (res.date) {
+        //搜索接口返回 成功
+        let matchRes = search.sort(res.result);
+        console.log(matchRes)
+        //createSearchResult(result.res);
+        if (search_result_count.innerText == 0) {
+          if (matchRes != 0) {
+            console.log('show count')
+            search_result_count_info.style.display = "block";
+            search_result_count.style.display = "block";
+          };
+        };
+        search_result_count.innerText = ~~search_result_count.innerText + matchRes;
+      };
+      // console.log(_ks,_i);
+      if (_i + 1 < _ks.length) {
+        _i += 1;
+        await getOneQuestion(_ks, _i);
+      } else {
+        search.done();
+        autoJoint();
+        //if (timeline_checkbox.checked) {
+
+        search_btn_loading.style.opacity = 0;
+        isSearch = false;
+
+      }
+    };
+
+
+    function autoJoint() {
+      var res = search.result;
+      var todo = {
+        1: '', 2: '', 3: '', 4: ''
+      }
+      var min = 9999;
+      var minIndex=0;
+      for (var i = 0; i < res.length; i++) {
+        console.log(res[i]);
+        var t = res[i].content;
+        var n = t.length;
+        if (n < 20) {
+          todo[1] = t;
+        } else if (n >= 20 && n < 40) {
+          todo[2] = t;
+        } else if (n >= 40 && n < 80) {
+          todo[3] = t;
+        } else if (n >= 80 && n < 580) {
+          todo[4] = t;
+        };
+        if (n < min) {
+          min = n;
+          minIndex=i;
+        }
+        console.log(n, t.content, '\n');
+
+      };
+
+      var isLast = true;
+      for (let index = 1; index < 4; index++) {
+        var t = todo[index];
+        if (t) {
+          isLast = false;
+          t = t.replace('1、', '<br><br>1.');
+          t = t.replace('2、', '<br><br>2.');
+          t = t.replace('3、', '<br><br>3.');
+          t = t.replace('4、', '<br><br>4.');
+          t = t.replace('5、', '<br><br>5.');
+          editor.content.innerHTML = editor.content.innerHTML + `<p>${t}</p><br>`;
+        }
+
+      };
+
+      if (isLast) {
+        var t = todo[4];
+        if (t) {
+          t = t.replace('1、', '<br><br>1.');
+          t = t.replace('2、', '<br><br>2.');
+          t = t.replace('3、', '<br><br>3.');
+          t = t.replace('4、', '<br><br>4.');
+          t = t.replace('5、', '<br><br>5.');
+          editor.content.innerHTML = editor.content.innerHTML + `<p>${t}</p><br>`;
+        } else {
+          var t=res[minIndex].content;
+          t = t.replace('1、', '<br><br>1.');
+          t = t.replace('2、', '<br><br>2.');
+          t = t.replace('3、', '<br><br>3.');
+          t = t.replace('4、', '<br><br>4.');
+          t = t.replace('5、', '<br><br>5.');
+          editor.content.innerHTML = editor.content.innerHTML + `<p>${t}</p><br>`;
+        }
+
+      }
+
+
+
+    }
+
+    async function getTimelines() {
+      var timelines = await postData('http://47.92.205.28/timeline', search.result);
+      console.log(timelines)
+      createTimelineElement(timelines);
+    }
+
+    function createTimelineElement(_tx) {
+      editor.content.innerHTML = editor.content.innerHTML + "<h2>简史</h2>";
+      for (let index = 0; index < _tx.length; index++) {
+        const t = _tx[index];
+        let data = {
+          "title": t.when,
+          "text": t.text,
+          "after": t.after,
+          "before": t.before
+        };
+        let div = document.createElement('div');
+        div.className = "time_line_item";
+        div.innerHTML = `<h4>${t.when}</h4><p>${t.text}</p>`;
+        div.setAttribute('data', JSON.stringify(data));
+        div.addEventListener('click', add2Article);
+        time_line_pannel.appendChild(div);
+        add2ArticleBy(data);
+      }
+    }
+
+
+    function moreQuestion(_keyword) {
+      var res = [];
+      //var qs =
+      var qs = [""];
+
+      //枚举问题 qs.length
+      for (let index = 0; index < qs.length; index++) {
+        let k = qs[index];
+        k = _keyword + ' ' + k;
+        res.push(k);
+      }
+      return res
+    };
+
+    function isMatchSearchKeyword(_t) {
+
+    };
+
+    function createSearchResult(_res) {
+      for (let index = 0; index < _res.length; index++) {
+
+        var div = document.createElement('div');
+        const r = _res[index];
+        var isNew = search.isNew(r.url);
+        console.log(isNew, 'isNew')
+        if (isNew) {
+          div.innerHTML = r.text;
+          /*div.innerHTML = div.innerText;
+          div.innerHTML = div.innerText;
+          div.innerHTML = div.innerText;
+          */
+          search.result.push({
+            "content": div.innerText,
+            "title": r.title,
+            "link": r.url,
+            "publishAt": '---'
+          });
+          //console.log(index,r.content_html);
+
+          div.innerHTML = delSpaceBar(div.innerText);
+          // console.log(div.innerText);
+
+          let texts = div.innerText.split('\n');
+          //分段
+          div.innerHTML = '';
+
+          for (let j = 0; j < texts.length; j++) {
+            if (texts[j]) {
+              var p = document.createElement('p');
+              p.className = 'list_paragraph';
+              p.innerText = texts[j];
+              p.setAttribute("data", JSON.stringify({
+                "title": r.title,
+                "text": texts[j]
+              }));
+              div.appendChild(p);
+              p.addEventListener('click', add2Article);
+            }
+          };
+
+
+          var ndiv = document.createElement('div');
+          ndiv.className = "list";
+          ndiv.innerHTML = `<h4>${r.title}</h4>`;
+
+          ndiv.appendChild(div);
+
+          search_result.appendChild(ndiv);
+        };
+
+        //console.log(r.title, r.content_html);
+      }
+    };
+
+
+    function delHtmlTag(_str) {
+      return _str.replace(/<[^>]+>/g, "");  //正则去掉所有的html标记
+    }
+
+    function delSpaceBar(_str) {
+      return _str.replace(/\s{2}/ig, '');
+    }
+
+    function add2Article(e) {
+      e.preventDefault();
+      console.log(e, e.target.getAttribute('data'));
+      if (e.target.getAttribute('data')) {
+        let data = JSON.parse(e.target.getAttribute('data'));
+        add2ArticleBy(data);
+      } else {
+        let data = JSON.parse(e.target.parentElement.getAttribute('data'));
+        add2ArticleBy(data);
+      }
+    }
+
+    function add2ArticleBy(data) {
+      let title = `<h2>${data.title}</h2>`;
+      let text = `<p><!--<span style="color:#eee">${data.before}</span>--><span>${data.text}</span><!--<span style="color:#eee">${data.after}</span>--></p>`;
+      editor.content.innerHTML = editor.content.innerHTML + '<br>' + title + text;
+    }
+
+    function add2Search(e) {
+      e.preventDefault();
+      document.querySelector('#left_pannel').style.display = "none";
+      var p = e.target.parentElement;
+      var k = p.getAttribute('keyword');
+      if (!k) {
+        p = p.parentElement;
+        k = p.getAttribute('keyword');
+      };
+      console.log(e.target.parentElement);
+      search_input.innerText = k;
+    }
+
+    async function fetchJson(_keyword) {
+      console.log(_keyword)
+      //
+      return await postData('http://47.92.205.28/search', {
+        "keyword": _keyword
+      })
+      /*
+            return new Promise(function (resolve, reject) {
+              fetch('https://ai.xuehuiget.com/api/ai/spider/get/answers', {
+                method: 'post',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ question: _keyword })
+      
+              })
+                .then(response => response.json())
+                .then(data => {
+                  // data就是我们请求的repos
+                  //console.log(data)
+                  console.log(data)
+                  resolve(data);
+                });
+            });
+      
+            */
+
+    };
+
+    async function getHot() {
+      let hotDay = await getHotFromDay();
+      console.log(hotDay)
+      return hotDay
+    }
+
+    async function getHotFromDay() {
+      return new Promise(function (resolve, reject) {
+        fetch('http://47.92.205.28/hot')
+          .then(response => response.json())
+          .then(data => {
+            // data就是我们请求的repos
+            //console.log(data)
+            resolve(data);
+          });
+      });
+    }
+
+    async function postData(url, data) {
+      // Default options are marked with *
+
+      return new Promise(function (resolve, reject) {
+        fetch(url, {
+          body: JSON.stringify(data), // must match 'Content-Type' header
+          method: 'POST', // *GET, POST, PUT, DELETE, etc.
+          mode: 'cors', // no-cors, cors, *same-origin
+        })
+          .then(response => response.json())
+          .then(data => {
+            resolve(data);
+          });
+      })
+    }
+
+
+    async function rewriteArticle() {
+      var txt = window.getSelection().toString();
+
+      if (!txt) {
+        txt = editor.content.innerText;
+      }
+
+      var res = await postData("http://47.92.205.28/rewrite", {
+        "text": txt,
+        "rewrite": true
+      });
+
+      editor.content.innerText = res.text;
+
+    };
+  </script>
+  <script>
+    var editor = window.pell.init({
+      element: document.getElementById('editor'),
+      styleWithCSS: true,
+      actions: [
+        'bold',
+        'heading2',
+        'paragraph',
+        {
+          name: '简史',
+          icon: 'TIME',
+          title: '简史',
+          result: async () => {
+            search_btn_loading.style.opacity = 1;
+            await getTimelines();
+            search_btn_loading.style.opacity = 0;
+          }
+        },
+        {
+          name: '智能改写',
+          icon: 'REW',
+          title: '智能改写',
+          result: rewriteArticle
+        },
+      ],
+      defaultParagraphSeparator: 'p',
+      onChange: function (html) {
+        console.log(html)
+        let div = document.createElement('div');
+        div.innerHTML = html;
+        console.log(div.innerText);
+      }
+    })
+  </script>
+</body>
+
+</html>
