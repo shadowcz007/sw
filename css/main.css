@@ -14,9 +14,9 @@
   
       #left_pannel {
         width: 100%;
-        position: fixed;
+        align-items: center;
         justify-content: center;
-        /* align-items: center; */
+        /* position: fixed; align-items: center; */
         display: flex;
         z-index: 99;
         top: 188px;
@@ -145,8 +145,8 @@
         
         margin: 12px 0;
         padding: 8px;
-        width: 333px;
-        height: 333px;
+        width: 80%;
+       height: 80%;
         overflow-y: scroll;
 
       }
