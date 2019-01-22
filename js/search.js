@@ -43,7 +43,9 @@ class Search {
       return isMatch
     }
     isAvailabe(_r) {
-      var c = _r.text ? _r.text.replace(/\s/ig, '') : '';
+      console.log(_r)
+      var text=_r.text.join('\n');
+      var c = text ? text.replace(/\s/ig, '') : '';
       var t = _r.title ? _r.title.replace(/\s/ig, '') : '';
       if (t.length > 0 && c.length > 0) {
         return true
