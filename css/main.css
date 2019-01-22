@@ -82,6 +82,7 @@
         color: white;
         cursor: pointer;
         user-select: none;
+        margin: 8px;
       }
   
       .btn:hover {
@@ -128,7 +129,7 @@
       }
   
       #search_input {
-        width: 100%;
+        width: 60%;
       }
 
 
@@ -186,4 +187,9 @@
       #hot_list{
          
        
+      }
+
+      .btn_area{
+        display: flex;
+        flex-direction: row;
       }
